@@ -12,6 +12,7 @@ public class Order {
 	private String customerID; //Müþteri no
 	private Date sentTime; //Gönderim zamaný
 	private String insrumentName; //GARAN vs;
+	private String status; //Gerçekleþti, Silindi vs.
 	
 	public Order(String orderID, BigDecimal price, BigDecimal units, String type, String accountID, String debitCredit,
 			String customerID, String instrumentName) {
@@ -59,6 +60,14 @@ public class Order {
 
 	public String getInsrumentName() {
 		return insrumentName;
+	}
+	
+	public String getStatus() {
+		return this.status;
+	}
+	
+	public void setStatus(String status) {
+		this.status = status;
 	}
 	
 	public String toString() {
