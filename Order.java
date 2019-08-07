@@ -1,80 +1,137 @@
-import java.math.BigDecimal;
-import java.util.Date;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
-public class Order {
+public class Block{
 
-	private String orderID; //Order id
-	private BigDecimal price; //Fiyat
-	private BigDecimal units; //Lot sayýsý
-	private String type; //Tip
-	private String debitCredit; //Alýþ satýþ
-	private String accountID; //Hesap no
-	private String customerID; //Müþteri no
-	private Date sentTime; //Gönderim zamaný
-	private String insrumentName; //GARAN vs;
-	private String status; //Gerçekleþti, Silindi vs.
+	private static final long serialVersionUID = 1L;
+	private String hashValue;
+	private int id;
+	private int blockSalt = -1;
+	private String previousHash;
+	private Order sendOrder, buyOrder;
 	
-	public Order(String orderID, BigDecimal price, BigDecimal units, String type, String accountID, String debitCredit,
-			String customerID, String instrumentName) {
-		this.orderID = orderID;
-		this.price = price;
-		this.accountID = accountID;
-		this.customerID = customerID;
-		this.debitCredit = debitCredit;
-		this.insrumentName = instrumentName;
-		this.units = units;
-		this.sentTime = new Date();
+	public Block (int id) {
+		this.id = id;
 	}
 
-	public String getOrderID() {
-		return orderID;
-	}
-
-	public BigDecimal getPrice() {
-		return price;
-	}
-
-	public BigDecimal getUnits() {
-		return units;
-	}
-
-	public String getType() {
-		return type;
-	}
-
-	public String getDebitCredit() {
-		return debitCredit;
-	}
-
-	public String getAccountID() {
-		return accountID;
-	}
-
-	public String getCustomerID() {
-		return customerID;
-	}
-
-	public Date getSentTime() {
-		return sentTime;
-	}
-
-	public String getInsrumentName() {
-		return insrumentName;
-	}
 	
-	public String getStatus() {
-		return this.status;
-	}
+
+	public void Mine(int difficulty, Order sendOrder, Order buyOrder) {
+
+		this.sendOrder = sendOrder;
+		this.buyOrder = buyOrder;
+
+		String checkDiff = "";
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < difficulty; i++)
+			builder.append('0');
+		checkDiff = builder.toString();
+
+		byte[] hashedByteArray;
+
 	
-	public void setStatus(String status) {
-		this.status = status;
+		do {
+			blockSalt++;
+			try {
+				MessageDigest digest = MessageDigest.getInstance("SHA-256");
+				hashedByteArray = digest.digest(((sendOrder.getOrderID() 
+						+ sendOrder.getAccountID() 
+						+ sendOrder.getCustomerID() 
+						+ sendOrder.getDebitCredit() 
+						+ sendOrder.getType() 
+						+ sendOrder.getPrice()
+						+ sendOrder.getUnits()
+						+ sendOrder.getSentTime()
+						+ buyOrder.getOrderID()
+						+ buyOrder.getAccountID()
+						+ buyOrder.getCustomerID()
+						+ buyOrder.getDebitCredit()
+						+ buyOrder.getType()
+						+ buyOrder.getPrice()
+						+ buyOrder.getUnits()
+						+ buyOrder.getSentTime()) + blockSalt).getBytes(StandardCharsets.UTF_8));
+				this.hashValue = bytesToHex(hashedByteArray);
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			}
+
+		} while (!hashValue.substring(0, difficulty).equals(checkDiff));
+
 	}
+
+	public boolean verify(String seedString, int blockSalt) {
+
+		byte[] hashedByteArray;
+		String verifyHashValue = "";
+
+
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			hashedByteArray = digest.digest((seedString + blockSalt).getBytes(StandardCharsets.UTF_8));
+			verifyHashValue = bytesToHex(hashedByteArray);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		boolean isEqual = verifyHashValue.equals(this.getHashValue());
 	
+		return isEqual;
+	
+	}
+
+	private static String bytesToHex(byte[] byteArray) {
+		StringBuffer hexString = new StringBuffer();
+		for (int i = 0; i < byteArray.length; i++) {
+			String hexValue = Integer.toHexString(0xff & byteArray[i]);
+
+			if(hexValue.length() == 1) hexString.append('0');
+
+			hexString.append(hexValue);
+		}
+		return hexString.toString();
+	}
+
+	public void setPreviousHash(String previousHash) {
+		this.previousHash = previousHash;
+	}
+
+	public String getHashValue() {
+		return this.hashValue;
+	}
+
+	public int getId() {
+		return this.id;
+	}
+
+	public int getBlockSalt() { return this.blockSalt; }  //Is this safe to implement?
+
+	public String getSeedString() { return (sendOrder.getOrderID() 
+			+ sendOrder.getAccountID() 
+			+ sendOrder.getCustomerID() 
+			+ sendOrder.getDebitCredit() 
+			+ sendOrder.getType() 
+			+ sendOrder.getPrice()
+			+ sendOrder.getUnits()
+			+ sendOrder.getSentTime()
+			+ buyOrder.getOrderID()
+			+ buyOrder.getAccountID()
+			+ buyOrder.getCustomerID()
+			+ buyOrder.getDebitCredit()
+			+ buyOrder.getType()
+			+ buyOrder.getPrice()
+			+ buyOrder.getUnits()
+			+ buyOrder.getSentTime()); 
+	}
+
 	public String toString() {
-		String result = "";
-		result = "[orderID: " + this.orderID + ", customerID: " + this.customerID + ", accountID: " + this.accountID
-				+ ", units: " + this.units + ", price: " + this.price + ", type: " + this.type + ", debitCredit: "
-				+ this.debitCredit + ", sentTime: " + this.sentTime + "]";
+
+		String result = "{ id: " + this.id + ", hash: " + this.hashValue + ", previous hash: " + this.previousHash + ",\nsendOrder: " 
+		+ sendOrder.toString() + "\n buyOrder:" + buyOrder.toString() + "}";
+
 		return result;
+	}
+
+	public Order getSendOrder() {
+		return sendOrder;
 	}
 }
