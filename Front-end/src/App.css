@@ -1,0 +1,9 @@
+.exchangePanel{
+  height: auto;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#leftPanel{
+  border-right: 1px solid black;
+}
